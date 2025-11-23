@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRYPTINITY | Frictionless Finance</title>
+    <meta name="description" content="CRYPTINITY (CTY) - The only global platform for reduced liquidity and gas fees. Join the Genesis Node Launch now.">
+    
+    <meta property="og:title" content="CRYPTINITY | Frictionless Finance">
+    <meta property="og:description" content="Secure your allocation in the Genesis Node Launch. The only global platform for reduced liquidity and gas fees.">
+    <meta property="og:image" content="https://img.sanishtech.com/u/f00ebbff3a96e6e007a1c5763edb6940.png">
+    <meta property="og:url" content="https://cryptinity.io">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <link rel="icon" href="https://img.sanishtech.com/u/f00ebbff3a96e6e007a1c5763edb6940.png" type="image/png">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] },
+                    colors: {
+                        brand: { 400: '#22d3ee', 500: '#06b6d4', 600: '#0891b2', 900: '#164e63' },
+                        gold: { 400: '#fbbf24', 500: '#f59e0b' }
+                    },
+                    animation: { 'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite' }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap');
+
+        body { font-family: 'Inter', sans-serif; background-color: #020617; scroll-behavior: smooth; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #334155; }
+
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+        #bg-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .glass-card {
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(8px);
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+        .glass-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(34, 211, 238, 0.3);
+        }
+
+        .text-gradient-gold {
+            background: linear-gradient(to right, #fbbf24, #d97706);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .rig-active { filter: blur(0) grayscale(0); opacity: 1; transform: scale(1); transition: all 0.5s; }
+        .crypto-row:hover { background-color: rgba(255,255,255,0.03); }
+
+        /* Chat Animations */
+        @keyframes slideInUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .msg-anim { animation: slideInUp 0.3s ease-out forwards; }
+        
+        /* Chat Transition */
+        #live-chat { transition: height 0.3s ease-in-out, opacity 0.3s ease-in-out; }
+        .chat-minimized { height: 48px !important; overflow: hidden; }
+
+        /* Preloader */
+        #preloader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #020617; z-index: 9999;
+            display: flex; justify-content: center; align-items: center; flex-direction: column;
+            transition: opacity 0.8s ease-out;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-100 selection:bg-cyan-500/30 overflow-x-hidden">
+
+    <div id="preloader">
+        <img src="https://img.sanishtech.com/u/f00ebbff3a96e6e007a1c5763edb6940.png" class="w-24 h-24 mb-4 animate-pulse rounded-full shadow-[0_0_30px_rgba(34,211,238,0.4)]">
+        <div class="text-cyan-400 font-mono text-sm tracking-widest">INITIALIZING PROTOCOL...</div>
+    </div>
+
+    <canvas id="bg-canvas"></canvas>
+
+    <nav class="fixed top-0 w-full z-50 border-b border-slate-800/50 bg-slate-950/80 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <div class="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition" onclick="window.scrollTo(0,0)">
+                <img src="https://img.sanishtech.com/u/f00ebbff3a96e6e007a1c5763edb6940.png" alt="CTY Logo" class="w-10 h-10 rounded-full shadow-lg shadow-cyan-500/20 border border-slate-700">
+                <span class="font-bold text-xl tracking-tight text-white">CRYPTINITY</span>
+            </div>
+            <div class="hidden md:flex items-center space-x-8 text-sm font-medium text-slate-400">
+                <a href="#video-teaser" class="hover:text-cyan-400 transition">Teaser</a>
+                <a href="#whitepaper" class="hover:text-cyan-400 transition">Whitepaper</a>
+                <a href="#market-data" class="hover:text-cyan-400 transition">Live Market</a>
+                <a href="#footer-socials" class="hover:text-cyan-400 transition">Community</a>
+            </div>
+            <div id="wallet-section"></div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-16 space-y-24">
+        
+        <div id="notification-area" class="fixed top-24 right-4 z-50 space-y-2 pointer-events-none"></div>
+
+        <div class="relative glass-panel rounded-3xl p-8 sm:p-12 overflow-hidden shadow-2xl shadow-cyan-900/10">
+            <div class="absolute -top-24 -right-24 w-96 h-96 bg-cyan-500/20 rounded-full blur-[100px]"></div>
+            <div class="relative z-10 grid lg:grid-cols-2 gap-12 items-center">
+                <div class="space-y-6">
+                    <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-cyan-950/30 border border-cyan-900/50 text-cyan-400 text-xs font-medium tracking-wider uppercase">
+                        <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse-fast"></span>
+                        <span>Pre-Launch Phase</span>
+                    </div>
+                    <h1 class="text-5xl sm:text-6xl font-extrabold tracking-tight text-white leading-tight">
+                        DeFi <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">Redefined.</span>
+                    </h1>
+                    <p class="text-slate-400 text-lg max-w-lg leading-relaxed">
+                        The only global platform providing reduced liquidity and gas fees. Join the revolution and secure your node allocation now.
+                    </p>
+                    
+                    <div class="bg-slate-900/50 border border-slate-700/50 p-4 rounded-xl flex items-center justify-between">
+                         <div>
+                            <p class="text-xs text-slate-400 uppercase font-bold tracking-wider">Whitelisted Members</p>
+                            <p id="whitelist-counter" class="text-2xl font-mono font-bold text-white text-shadow">60,200,819</p>
+                         </div>
+                         <div class="text-green-400 text-xs flex items-center gap-1">
+                            <span class="animate-pulse">●</span> Online
+                         </div>
+                    </div>
+
+                    <div class="pt-4">
+                        <p class="text-slate-500 text-xs uppercase tracking-widest mb-3 font-semibold">TGE Countdown</p>
+                        <div class="flex space-x-4" id="timer-container"></div>
+                    </div>
+                </div>
+                <div class="relative">
+                    <div class="absolute inset-0 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-2xl blur opacity-20"></div>
+                    <div class="relative bg-slate-900 border border-slate-800 rounded-2xl p-8">
+                        <div class="flex justify-between items-start mb-6">
+                            <div>
+                                <h3 class="text-lg font-semibold text-white">Protocol Stats</h3>
+                                <p class="text-slate-500 text-sm">Live Network Data</p>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-2xl font-bold text-amber-400">4+ Years</div>
+                                <div class="text-[10px] text-slate-500 uppercase">Dev Experience</div>
+                            </div>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                                <span class="text-slate-400 text-sm">Total Supply</span>
+                                <span class="text-white font-mono font-bold">21,000,000 CTY</span>
+                            </div>
+                            <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                                <span class="text-slate-400 text-sm">Transaction Assurance</span>
+                                <span class="text-green-400 font-mono font-bold">100%</span>
+                            </div>
+                            <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                                <span class="text-slate-400 text-sm">Current Block Reward</span>
+                                <span id="block-reward" class="text-cyan-400 font-mono font-bold">25.0000 CTY</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-slate-400 text-sm">Network Hashrate</span>
+                                <span class="text-white font-mono font-bold">45.2 PH/s</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="video-teaser" class="max-w-2xl mx-auto">
+            <div class="glass-card rounded-3xl p-1 border border-cyan-500/30 shadow-[0_0_40px_rgba(6,182,212,0.15)]">
+                <div class="bg-slate-950 rounded-[20px] p-6 text-center">
+                    <h3 class="text-2xl font-bold text-white mb-2 flex items-center justify-center gap-2">
+                        <span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span> 
+                        Official Teaser
+                    </h3>
+                    <p class="text-slate-400 text-sm mb-6">Watch the future of finance.</p>
+                    
+                    <div class="relative w-full max-w-[300px] mx-auto aspect-[9/16] rounded-2xl overflow-hidden border border-slate-800 shadow-2xl">
+                        <iframe 
+                            class="absolute inset-0 w-full h-full" 
+                            src="https://www.youtube.com/embed/L7JcqerIw7U?rel=0" 
+                            title="CRYPTINITY Teaser" 
+                            frameborder="0" 
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                            allowfullscreen>
+                        </iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="whitepaper" class="space-y-16">
+            <div class="text-center max-w-3xl mx-auto space-y-4">
+                <h2 class="text-3xl md:text-5xl font-bold text-white">The <span class="text-gradient-gold">Only Tool</span> in the World</h2>
+                <p class="text-slate-400">CRYPTINITY is the only platform globally that can provide access to reduced liquidity, gas fees, and wager costs for users with low credits.</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="glass-card rounded-2xl p-8 group">
+                    <h3 class="text-2xl font-bold text-amber-400 mb-4">Our Mission</h3>
+                    <p class="text-slate-300 leading-relaxed">To build a strong and reliable Digital Financial Securities ecosystem that empowers users with unprecedented access to cryptocurrency tools, trading capabilities, and financial freedom while maintaining the highest standards of security and transparency.</p>
+                </div>
+                <div class="glass-card rounded-2xl p-8 group">
+                    <h3 class="text-2xl font-bold text-amber-400 mb-4">Our Vision</h3>
+                    <p class="text-slate-300 leading-relaxed">EXPANDING 100% TRUST, SECURITY & WORLD FAIR TRANSACTION across the global cryptocurrency landscape, making CRYPTINITY the universal standard for crypto tools and financial services worldwide.</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="market-data" class="glass-panel rounded-3xl overflow-hidden">
+            <div class="p-6 border-b border-slate-800 flex justify-between items-center">
+                <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> 
+                    Live Market Data
+                </h3>
+                <div class="text-xs text-slate-500 font-mono">SOURCE: LIVECOINWATCH</div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-900/50 text-slate-400 text-xs font-bold uppercase tracking-wider border-b border-slate-800">
+                            <th class="p-4">Asset</th>
+                            <th class="p-4 text-right">Price (BTC)</th>
+                            <th class="p-4 text-right">24h Change</th>
+                            <th class="p-4 text-right hidden md:table-cell">Market Cap (BTC)</th>
+                            <th class="p-4 text-right hidden lg:table-cell">Volume 24h</th>
+                        </tr>
+                    </thead>
+                    <tbody id="crypto-table-body" class="text-sm text-slate-300 font-mono">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="mining-rig-container" class="rig-active transition-all duration-700">
+            <div class="relative rounded-3xl overflow-hidden border border-slate-800 bg-slate-900/80 backdrop-blur-xl">
+                <div class="p-6 border-b border-slate-800 bg-slate-950/50 flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div class="flex items-center gap-4">
+                        <div id="status-indicator" class="w-3 h-3 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]"></div>
+                        <div>
+                            <h2 class="text-2xl font-bold text-white">Cloud Node Interface</h2>
+                            <p class="text-xs text-slate-400 font-mono uppercase tracking-wider" id="node-id">ID: DISCONNECTED</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 bg-slate-900 rounded-lg p-2 border border-slate-800">
+                        <span class="text-slate-400 text-sm">Hashrate:</span>
+                        <span class="text-cyan-400 font-mono font-bold w-24 text-right"><span id="hashrate">0</span> MH/s</span>
+                    </div>
+                </div>
+
+                <div class="grid md:grid-cols-3 min-h-[300px]">
+                    <div class="md:col-span-2 p-8 flex flex-col justify-center border-r border-slate-800 relative overflow-hidden">
+                        <div class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
+                        <span class="text-slate-500 text-sm font-semibold uppercase tracking-widest mb-2 z-10">Unclaimed Rewards</span>
+                        <div class="flex items-baseline gap-3 z-10">
+                            <span id="mining-balance" class="text-7xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-500 tracking-tighter font-mono">0.0000</span>
+                            <span class="text-2xl font-bold text-cyan-500">CTY</span>
+                        </div>
+                        <div class="mt-8 flex gap-4 z-10 items-center">
+                            <div id="rig-controls" class="w-full max-w-xs"></div>
+                            
+                            <button onclick="sendProof()" class="px-6 py-4 rounded-xl border border-cyan-500/50 text-cyan-400 font-bold bg-cyan-900/20 hover:bg-cyan-900/40 transition cursor-pointer shadow-[0_0_15px_rgba(34,211,238,0.1)] flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                                <span>CLAIM via BOT</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-col h-full">
+                        <div class="bg-slate-900/50 p-5 border-b border-slate-800 flex-1">
+                            <div class="flex items-center gap-2 mb-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-amber-400"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg>
+                                <h4 class="text-sm font-bold text-white uppercase tracking-wide">Referral Bonus</h4>
+                            </div>
+                            <p class="text-xs text-slate-400 mb-3">Invite friends and earn <span class="text-amber-400 font-bold">10 CTY</span> per active node invite.</p>
+                            
+                            <div class="flex items-center gap-2">
+                                <div class="relative flex-1">
+                                    <input id="ref-link" readonly type="text" value="https://cryptinity.io/ref/WAITING..." class="w-full bg-black/40 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-300 font-mono">
+                                </div>
+                                <button onclick="copyRef()" class="bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border border-amber-500/50 rounded-lg px-3 py-2 text-xs font-bold transition">
+                                    COPY
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="bg-black/40 p-4 font-mono text-xs flex flex-col h-48">
+                            <div class="flex justify-between items-center text-slate-500 mb-2 pb-2 border-b border-slate-800">
+                                <span>>_ SYSTEM LOGS</span>
+                                <span class="animate-pulse text-cyan-500">● LIVE</span>
+                            </div>
+                            <div id="terminal-logs" class="flex-1 overflow-y-auto scrollbar-hide space-y-1 text-slate-400 max-h-[250px]">
+                                <div class="opacity-50">Waiting for node connection...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer id="footer-socials" class="border-t border-slate-800 bg-slate-900/50 pt-12 pb-8">
+            <div class="max-w-4xl mx-auto px-6 text-center">
+                <h3 class="text-xl font-bold text-white mb-2">Join the Community</h3>
+                <p class="text-slate-400 text-sm mb-8">Stay updated on the TGE, Airdrops, and Governance proposals.</p>
+                
+                <div class="flex justify-center gap-6 mb-12">
+                    <a href="https://t.me/cryptinitymain" target="_blank" class="group relative p-4 rounded-2xl bg-slate-800 border border-slate-700 hover:border-cyan-500 hover:bg-slate-700 transition">
+                        <svg class="w-8 h-8 text-cyan-400 group-hover:scale-110 transition transform" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161c-.18 1.897-.962 6.502-1.361 8.627-.168.9-.5 1.201-.82 1.23-.697.064-1.226-.461-1.901-.903-1.056-.692-1.653-1.123-2.678-1.799-1.185-.781-.417-1.21.258-1.911.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.139-5.062 3.345-.479.329-.913.489-1.302.481-.428-.008-1.252-.241-1.865-.44-.751-.244-1.349-.374-1.297-.789.027-.216.324-.437.893-.663 3.498-1.524 5.831-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.477-1.635.099-.002.321.023.465.141.119.098.152.228.166.331.016.118.017.237.009.344z"/></svg>
+                        <span class="absolute -bottom-8 left-1/2 -translate-x-1/2 text-[10px] text-cyan-400 opacity-0 group-hover:opacity-100 transition whitespace-nowrap">TELEGRAM CHANNEL</span>
+                    </a>
+
+                    <a href="https://x.com/CRYPTINITY85164" target="_blank" class="group relative p-4 rounded-2xl bg-slate-800 border border-slate-700 hover:border-cyan-500 hover:bg-slate-700 transition">
+                        <svg class="w-8 h-8 text-white group-hover:scale-110 transition transform" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                        <span class="absolute -bottom-8 left-1/2 -translate-x-1/2 text-[10px] text-white opacity-0 group-hover:opacity-100 transition whitespace-nowrap">X (TWITTER)</span>
+                    </a>
+
+                    <a href="https://www.facebook.com/cryptinity" target="_blank" class="group relative p-4 rounded-2xl bg-slate-800 border border-slate-700 hover:border-blue-500 hover:bg-slate-700 transition">
+                        <svg class="w-8 h-8 text-blue-500 group-hover:scale-110 transition transform" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.791-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                        <span class="absolute -bottom-8 left-1/2 -translate-x-1/2 text-[10px] text-blue-500 opacity-0 group-hover:opacity-100 transition whitespace-nowrap">FACEBOOK</span>
+                    </a>
+                </div>
+
+                <div class="text-xs text-slate-600">
+                    <p>Automated Support: <a href="https://t.me/CryptinityBot" class="text-slate-400 hover:text-white transition">@CryptinityBot</a></p>
+                    <p class="mt-2">&copy; 2025 CRYPTINITY. All Rights Reserved.</p>
+                </div>
+            </div>
+        </footer>
+
+        <div id="live-chat" class="fixed bottom-4 right-4 w-80 sm:w-96 max-w-[calc(100vw-2rem)] bg-slate-950 border border-slate-700 rounded-xl overflow-hidden z-50 shadow-2xl flex flex-col h-80">
+            <div class="bg-slate-900 p-3 border-b border-slate-700 flex justify-between items-center cursor-pointer select-none" onclick="toggleChat()">
+                <div class="flex items-center gap-2">
+                    <span class="relative flex h-2 w-2">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                    </span>
+                    <span class="text-xs font-bold text-white">GLOBAL CHAT</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <select id="country-selector" onclick="event.stopPropagation()" class="bg-slate-800 text-[10px] text-slate-300 border border-slate-700 rounded px-1 py-0.5 focus:outline-none h-6">
+                        <option value="global">🌐 Global</option>
+                        <option value="us">🇺🇸 USA</option>
+                        <option value="ph">🇵🇭 Philippines</option>
+                        <option value="cn">🇨🇳 China</option>
+                        <option value="kr">🇰🇷 Korea</option>
+                        <option value="jp">🇯🇵 Japan</option>
+                    </select>
+                    <button class="text-slate-400 hover:text-white transition" id="chat-min-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    </button>
+                </div>
+            </div>
+            <div id="chat-box" class="flex-1 overflow-y-auto p-3 space-y-2 bg-slate-900/80 backdrop-blur scrollbar-hide">
+                </div>
+            <div id="chat-footer" class="p-2 bg-slate-900 border-t border-slate-700">
+                <input id="chat-input" type="text" placeholder="Message..." class="w-full bg-slate-800 text-xs text-white px-3 py-2 rounded-lg border border-slate-700 focus:outline-none focus:border-cyan-500 transition">
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // CONFIGURATION
+        const BOT_URL = "https://t.me/CryptinityBot";
+
+        // Preloader Logic
+        window.onload = function() {
+            setTimeout(() => {
+                const loader = document.getElementById('preloader');
+                loader.style.opacity = '0';
+                setTimeout(() => loader.remove(), 800);
+            }, 1200);
+        }
+
+        // --- LIVE MARKET DATA ---
+        const COIN_DATA = [
+          { "name": "Bitcoin", "symbol": "₿", "rank": 1, "png64": "https://lcw.nyc3.cdn.digitaloceanspaces.com/production/currencies/64/btc.png", "code": "BTC", "rate": 1, "volume": 1253479, "cap": 19950600, "delta": { "day": 1 } },
+          { "name": "Ethereum", "symbol": "Ξ", "rank": 2, "png64": "https://lcw.nyc3.cdn.digitaloceanspaces.com/production/currencies/64/eth.png", "code": "ETH", "rate": 0.03256870578886658, "volume": 537985, "cap": 3835386, "delta": { "day": 0.9902 } },
+          { "name": "Tether", "rank": 3, "png64": "https://lcw.nyc3.cdn.digitaloceanspaces.com/production/currencies/64/usdt.png", "code": "USDT", "rate": 0.000011928978919161305, "volume": 2062211, "cap": 1776280, "delta": { "day": 1.1005 } },
+          { "name": "BNB", "rank": 4, "png64": "https://lcw.nyc3.cdn.digitaloceanspaces.com/production/currencies/64/bnb.png", "code": "BNB", "rate": 0.009878854528218748, "volume": 39712, "cap": 1468022, "delta": { "day": 1.0039 } },
+          { "name": "Solana", "rank": 7, "png64": "https://lcw.nyc3.cdn.digitaloceanspaces.com/production/currencies/64/sol.png", "code": "SOL", "rate": 0.0015247415314567237, "volume": 123188, "cap": 852355, "delta": { "day": 0.9803 } },
+          { "name": "Cryptinity", "rank": 999, "code": "CTY", "rate": 0.00000050, "volume": 0, "cap": 0, "delta": { "day": 5.000 }, "custom": true }
+        ];
+
+        function renderCryptoTable() {
+            const tbody = document.getElementById('crypto-table-body');
+            tbody.innerHTML = '';
+            COIN_DATA.forEach(coin => {
+                const tr = document.createElement('tr');
+                tr.className = "crypto-row border-b border-slate-800 transition";
+                const deltaVal = (coin.delta.day - 1) * 100;
+                const isPos = deltaVal >= 0;
+                const deltaColor = isPos ? "text-green-400" : "text-red-400";
+                
+                let imgHtml = coin.custom 
+                    ? `<img src="https://img.sanishtech.com/u/f00ebbff3a96e6e007a1c5763edb6940.png" class="w-8 h-8 rounded-full border border-cyan-500">`
+                    : `<img src="${coin.png64}" alt="${coin.code}" class="w-8 h-8 rounded-full bg-white/5">`;
+
+                tr.innerHTML = `
+                    <td class="p-4 flex items-center gap-3">
+                        ${imgHtml}
+                        <div>
+                            <div class="font-bold text-white">${coin.name}</div>
+                            <div class="text-xs text-slate-500">${coin.code}</div>
+                        </div>
+                    </td>
+                    <td class="p-4 text-right font-medium text-cyan-300">${coin.rate.toFixed(8)}</td>
+                    <td class="p-4 text-right ${deltaColor} font-bold">${isPos ? "+" : ""}${deltaVal.toFixed(2)}%</td>
+                    <td class="p-4 text-right text-slate-400 hidden md:table-cell">${coin.cap > 0 ? '₿ ' + coin.cap.toLocaleString() : '-'}</td>
+                    <td class="p-4 text-right text-slate-500 hidden lg:table-cell">${coin.volume > 0 ? coin.volume.toLocaleString() : 'PRE-SALE'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // --- LIVE CHAT LOGIC ---
+        const REALISTIC_CHATS = [
+            { n: "CryptoKing", m: "When is the official launch date?", f: "🇺🇸" },
+            { n: "SatoshiFan", m: "Project looks solid. Whitepaper is clean.", f: "🇯🇵" },
+            { n: "Pierre_Dubois", m: "Bonjour! C'est énorme ce projet 🚀", f: "🇫🇷" },
+            { n: "Hans_M", m: "Endlich ein Projekt mit echten Use-Cases.", f: "🇩🇪" },
+            { n: "AlphaHunter", m: "Just whitelisted my wallet. LFG!", f: "🇬🇧" },
+            { n: "Liu_Wei", m: "这是一个很好的机会", f: "🇨🇳" },
+            { n: "MariaG", m: "Hola, saludos desde México 🇲🇽", f: "🇲🇽" },
+            { n: "Ivan_Drago", m: "How to connect MetaMask?", f: "🇷🇺" },
+            { n: "Kim_Soo", m: "가자! 🚀🚀", f: "🇰🇷" },
+            { n: "DeFi_Wizard", m: "Fees are basically zero. Love it.", f: "🇺🇸" },
+            { n: "Pedro_BR", m: "O projeto parece muito promissor!", f: "🇧🇷" },
+            { n: "MoonWalker", m: "Already farmed 500 CTY today.", f: "🇦🇺" },
+            { n: "Takeshi", m: "素晴らしいプロジェクト", f: "🇯🇵" },
+            { n: "Elena_K", m: "Very smooth UI, good job team.", f: "🇷🇺" },
+            { n: "PinoyTrader", m: "Solid project sir! 🚀", f: "🇵🇭" },
+            { n: "HODLer99", m: "Is there a discord link?", f: "🇨🇦" },
+            { n: "WhaleAlert", m: "Big bags loaded.", f: "🐳" },
+            { n: "TechGuy", m: "The node sync is instant.", f: "🇮🇳" },
+            { n: "Sofia_R", m: "To the moon! 🌕", f: "🇪🇸" },
+            { n: "Jinsu", m: "대박 나자!", f: "🇰🇷" }
+        ];
+
+        let currentChannel = 'global';
+        let isChatMinimized = false;
+
+        function initLiveChat() {
+            const box = document.getElementById('chat-box');
+            const selector = document.getElementById('country-selector');
+            const input = document.getElementById('chat-input');
+
+            for(let i=0; i<4; i++) addRandomMessage();
+
+            function scheduleNextMessage() {
+                const delay = Math.floor(Math.random() * 4000) + 2000; 
+                setTimeout(() => {
+                    addRandomMessage();
+                    scheduleNextMessage();
+                }, delay);
+            }
+            scheduleNextMessage();
+
+            selector.addEventListener('change', (e) => {
+                currentChannel = e.target.value;
+                const sysMsg = document.createElement('div');
+                sysMsg.className = "text-center text-[10px] text-slate-500 italic my-2";
+                sysMsg.innerText = `Joined ${e.target.options[e.target.selectedIndex].text} Channel`;
+                box.appendChild(sysMsg);
+                box.scrollTop = box.scrollHeight;
+            });
+
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && input.value.trim() !== '') {
+                    const div = document.createElement('div');
+                    div.className = "text-xs bg-cyan-900/30 p-2 rounded mb-1 border border-cyan-500/20 msg-anim";
+                    div.innerHTML = `<span class="font-bold text-cyan-400">You:</span> <span class="text-slate-200 break-words">${input.value}</span>`;
+                    box.appendChild(div);
+                    box.scrollTop = box.scrollHeight;
+                    input.value = '';
+                }
+            });
+
+            function addRandomMessage() {
+                const data = REALISTIC_CHATS[Math.floor(Math.random() * REALISTIC_CHATS.length)];
+                
+                if (currentChannel !== 'global') {
+                    if (currentChannel === 'us' && data.f !== '🇺🇸' && Math.random() > 0.3) return; 
+                    if (currentChannel === 'jp' && data.f !== '🇯🇵' && Math.random() > 0.3) return;
+                    if (currentChannel === 'ph' && data.f !== '🇵🇭' && Math.random() > 0.3) return;
+                }
+
+                const div = document.createElement('div');
+                div.className = "text-xs p-1 mb-1 opacity-80 hover:opacity-100 transition msg-anim";
+                div.innerHTML = `<span class="mr-1 text-base">${data.f}</span> <span class="font-bold text-slate-400">${data.n}:</span> <span class="text-slate-300">${data.m}</span>`;
+                
+                box.appendChild(div);
+                if(box.children.length > 40) box.removeChild(box.firstChild);
+
+                if (box.scrollHeight - box.scrollTop <= box.clientHeight + 100) {
+                    box.scrollTop = box.scrollHeight;
+                }
+            }
+        }
+
+        function toggleChat() {
+            const chat = document.getElementById('live-chat');
+            const btn = document.getElementById('chat-min-btn');
+            
+            if (isChatMinimized) {
+                chat.classList.remove('chat-minimized');
+                chat.style.height = '20rem'; 
+                btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
+                isChatMinimized = false;
+            } else {
+                chat.classList.add('chat-minimized');
+                btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
+                isChatMinimized = true;
+            }
+        }
+
+        // --- REFERRAL LOGIC ---
+        function generateRefLink() {
+            const base = "https://cryptinity.io/ref/";
+            let code = "";
+            if (state.wallet) {
+                code = state.wallet.substring(2, 8).toUpperCase();
+            } else {
+                const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+                for(let i=0; i<6; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            document.getElementById('ref-link').value = base + code;
+        }
+
+        function copyRef() {
+            const input = document.getElementById('ref-link');
+            input.select();
+            input.setSelectionRange(0, 99999); 
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(input.value).then(() => {
+                    showNotification("Referral link copied!", "success");
+                }).catch(() => fallbackCopyText(input.value));
+            } else {
+                fallbackCopyText(input.value);
+            }
+        }
+
+        function fallbackCopyText(text) {
+            try {
+                document.execCommand('copy');
+                showNotification("Referral link copied!", "success");
+            } catch (err) {
+                showNotification("Copy failed. Please copy manually.", "error");
+            }
+        }
+
+        function initWhitelistCounter() {
+            let count = 60200819;
+            const el = document.getElementById('whitelist-counter');
+            setInterval(() => {
+                count += Math.floor(Math.random() * 5) + 1;
+                el.innerText = count.toLocaleString();
+            }, 2000);
+        }
+
+        // --- CORE APP LOGIC ---
+        const CONFIG = {
+            tokenName: "CRYPTINITY",
+            tokenSymbol: "CTY",
+            launchDate: new Date(new Date().getTime() + (30 * 24 * 60 * 60 * 1000)),
+            baseHashrate: 145,
+            faucetRate: 0.0012 
+        };
+
+        let state = {
+            wallet: null,
+            isMining: false,
+            balance: parseFloat(localStorage.getItem('cty_balance')) || 0.0000,
+            intervals: { mine: null, logs: null },
+            nodeId: null
+        };
+
+        const dom = {
+            walletSection: document.getElementById('wallet-section'),
+            rigContainer: document.getElementById('mining-rig-container'),
+            balanceDisplay: document.getElementById('mining-balance'),
+            hashrateDisplay: document.getElementById('hashrate'),
+            statusInd: document.getElementById('status-indicator'),
+            nodeId: document.getElementById('node-id'),
+            controls: document.getElementById('rig-controls'),
+            terminal: document.getElementById('terminal-logs'),
+            timer: document.getElementById('timer-container'),
+            blockReward: document.getElementById('block-reward')
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initParticles();
+            initTimer();
+            renderCryptoTable();
+            initLiveChat(); 
+            initWhitelistCounter();
+            checkWallet();
+            renderUI();
+            generateRefLink(); 
+            if(state.balance > 0) dom.balanceDisplay.textContent = state.balance.toFixed(4);
+        });
+
+        // PROOF SENDING LOGIC (Enhanced for Bot)
+        function sendProof() {
+            if(!state.wallet) {
+                showNotification("Connect Wallet first!", "error");
+                return;
+            }
+            if(state.balance < 0.01) {
+                showNotification("Mine at least 0.01 CTY first!", "error");
+                return;
+            }
+            
+            // 1. Copy Details to Clipboard
+            const msg = `Hello Bot, claiming Node Rewards.\n\nWallet: ${state.wallet}\nBalance: ${state.balance.toFixed(4)} CTY\nNode ID: ${state.nodeId}`;
+            
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(msg).then(() => {
+                    showNotification("Details Copied! Paste in Bot.", "success");
+                    setTimeout(() => window.open(BOT_URL, "_blank"), 1000);
+                });
+            } else {
+                // Fallback
+                window.open(BOT_URL, "_blank");
+            }
+        }
+
+        async function checkWallet() {
+            if (window.ethereum) {
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                const accounts = await provider.listAccounts();
+                if (accounts.length > 0) setWallet(accounts[0]);
+                window.ethereum.on('accountsChanged', (accs) => {
+                    if(accs.length > 0) setWallet(accs[0]);
+                    else disconnectWallet();
+                });
+            }
+        }
+
+        async function connectWallet() {
+            if (!window.ethereum) {
+                showNotification("MetaMask not detected", "error");
+                return;
+            }
+            try {
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                const accounts = await provider.send("eth_requestAccounts", []);
+                setWallet(accounts[0]);
+            } catch (err) {
+                showNotification("Connection rejected", "error");
+            }
+        }
+
+        function setWallet(address) {
+            state.wallet = address;
+            state.nodeId = "NODE-" + address.substring(2, 8).toUpperCase();
+            renderUI();
+            generateRefLink(); 
+            showNotification("Wallet Connected Successfully", "success");
+        }
+
+        function disconnectWallet() {
+            state.wallet = null;
+            state.isMining = false;
+            clearIntervals();
+            renderUI();
+            generateRefLink();
+        }
+
+        function toggleMining() {
+            if (state.isMining) {
+                state.isMining = false;
+                clearIntervals();
+                addLog("Node operation suspended by user.");
+            } else {
+                if (!state.wallet) {
+                    state.nodeId = "NODE-GUEST-" + Math.floor(Math.random() * 9000);
+                    showNotification("Initializing Guest Mode...", "success");
+                }
+                state.isMining = true;
+                addLog("Initializing cryptographic handshake...");
+                setTimeout(() => addLog(`Connected to pool: ${CONFIG.tokenName}_SOL_L2`), 800);
+                setTimeout(() => {
+                    startMiningLoop();
+                }, 1500);
+            }
+            renderUI();
+        }
+
+        function startMiningLoop() {
+            state.intervals.mine = setInterval(() => {
+                const jitter = Math.random() * 0.0005;
+                state.balance += (CONFIG.faucetRate + jitter);
+                
+                if (Math.random() < 0.005) {
+                    state.balance += 10;
+                    showNotification("New Referral! +10 CTY", "success");
+                    addLog("Network Event: Referral Verified (+10 CTY)");
+                }
+
+                dom.balanceDisplay.textContent = state.balance.toFixed(4);
+                localStorage.setItem('cty_balance', state.balance);
+                
+                const hr = Math.floor(CONFIG.baseHashrate + (Math.random() * 20 - 10));
+                dom.hashrateDisplay.textContent = hr;
+
+                const rewardFluctuation = 25.00 + (Math.random() * 0.005 - 0.0025);
+                dom.blockReward.textContent = rewardFluctuation.toFixed(4) + " CTY";
+
+            }, 1000);
+
+            state.intervals.logs = setInterval(() => {
+                const logs = ["Validating block header...", `Hash found: 0x${Math.random().toString(16).substring(2, 10)}...`, "Verifying SOL bridge status...", "Difficulty adjusted: 4.233 T", "Syncing with neighbors...", "New Job received from pool"];
+                addLog(logs[Math.floor(Math.random() * logs.length)]);
+            }, 2500);
+        }
+
+        function clearIntervals() {
+            if(state.intervals.mine) clearInterval(state.intervals.mine);
+            if(state.intervals.logs) clearInterval(state.intervals.logs);
+            dom.hashrateDisplay.textContent = "0";
+            dom.blockReward.textContent = "25.0000 CTY"; 
+        }
+
+        function renderUI() {
+            if (!state.wallet) {
+                dom.walletSection.innerHTML = `<button onclick="connectWallet()" class="bg-slate-800 hover:bg-slate-700 text-white font-medium py-2 px-4 rounded-lg border border-slate-700 transition shadow-lg shadow-cyan-500/10">Connect Wallet</button>`;
+            } else {
+                dom.walletSection.innerHTML = `<div class="flex items-center gap-2 bg-cyan-950/30 border border-cyan-500/30 text-cyan-400 px-4 py-2 rounded-lg font-mono text-sm"><span class="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></span>${state.wallet.substring(0,6)}...${state.wallet.substring(38)}</div>`;
+                dom.nodeId.textContent = state.nodeId;
+            }
+            if (state.isMining && !state.wallet) dom.nodeId.textContent = state.nodeId || "NODE-GUEST";
+            else if (!state.wallet) dom.nodeId.textContent = "ID: WAITING FOR INPUT";
+
+            if (state.isMining) {
+                dom.statusInd.className = "w-3 h-3 rounded-full bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.8)] animate-pulse";
+                dom.controls.innerHTML = `<button onclick="toggleMining()" class="w-full py-4 rounded-xl bg-red-500/10 border border-red-500/50 text-red-400 font-bold hover:bg-red-500/20 transition">STOP NODE</button>`;
+            } else {
+                dom.statusInd.className = "w-3 h-3 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]";
+                dom.controls.innerHTML = `<button onclick="toggleMining()" class="w-full py-4 rounded-xl font-bold transition transform bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:scale-[1.02] shadow-lg shadow-cyan-500/25 cursor-pointer">INITIALIZE NODE</button>`;
+            }
+        }
+
+        function addLog(text) {
+            const entry = document.createElement('div');
+            const time = new Date().toLocaleTimeString('en-US', {hour12: false});
+            entry.innerHTML = `<span class="text-slate-600 mr-2">[${time}]</span> ${text}`;
+            dom.terminal.appendChild(entry);
+            dom.terminal.scrollTop = dom.terminal.scrollHeight;
+        }
+
+        function showNotification(msg, type) {
+            const notif = document.createElement('div');
+            const color = type === 'error' ? 'border-red-500 bg-red-900/80 text-white' : 'border-cyan-500 bg-slate-900 text-cyan-400';
+            notif.className = `px-6 py-3 rounded-lg border shadow-xl backdrop-blur-md transform transition-all duration-500 translate-x-10 opacity-0 ${color}`;
+            notif.innerText = msg;
+            document.getElementById('notification-area').appendChild(notif);
+            requestAnimationFrame(() => notif.classList.remove('translate-x-10', 'opacity-0'));
+            setTimeout(() => {
+                notif.classList.add('translate-x-10', 'opacity-0');
+                setTimeout(() => notif.remove(), 500);
+            }, 3000);
+        }
+
+        function initTimer() {
+            function update() {
+                const diff = CONFIG.launchDate - new Date();
+                if(diff <= 0) { dom.timer.innerHTML = "LAUNCHED"; return; }
+                const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
+                const m = Math.floor((diff / 1000 / 60) % 60);
+                const s = Math.floor((diff / 1000) % 60);
+                const box = (val, label) => `<div class="flex flex-col items-center"><span class="text-2xl font-bold text-white font-mono">${val.toString().padStart(2,'0')}</span><span class="text-[10px] text-slate-500 uppercase">${label}</span></div>`;
+                dom.timer.innerHTML = box(d,"Days") + '<span class="text-slate-600 text-xl">:</span>' + box(h,"Hrs") + '<span class="text-slate-600 text-xl">:</span>' + box(m,"Min") + '<span class="text-slate-600 text-xl">:</span>' + box(s,"Sec");
+            }
+            setInterval(update, 1000);
+            update();
+        }
+
+        function initParticles() {
+            const canvas = document.getElementById('bg-canvas');
+            const ctx = canvas.getContext('2d');
+            let width, height;
+            let particles = [];
+            function resize() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; }
+            window.addEventListener('resize', resize);
+            resize();
+            class Particle {
+                constructor() { this.x = Math.random() * width; this.y = Math.random() * height; this.vx = (Math.random() - 0.5) * 0.5; this.vy = (Math.random() - 0.5) * 0.5; this.size = Math.random() * 2; }
+                update() { this.x += this.vx; this.y += this.vy; if(this.x < 0 || this.x > width) this.vx *= -1; if(this.y < 0 || this.y > height) this.vy *= -1; }
+                draw() { ctx.fillStyle = 'rgba(6, 182, 212, 0.3)'; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill(); }
+            }
+            for(let i=0; i<50; i++) particles.push(new Particle());
+            function animate() {
+                ctx.clearRect(0, 0, width, height);
+                particles.forEach(p => {
+                    p.update(); p.draw();
+                    particles.forEach(p2 => {
+                        const dx = p.x - p2.x; const dy = p.y - p2.y; const dist = Math.sqrt(dx*dx + dy*dy);
+                        if(dist < 150) { ctx.strokeStyle = `rgba(6, 182, 212, ${0.1 - dist/1500})`; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p2.x, p2.y); ctx.stroke(); }
+                    });
+                });
+                requestAnimationFrame(animate);
+            }
+            animate();
+        }
+    </script>
+</body>
+</html>
